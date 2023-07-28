@@ -1,8 +1,8 @@
-class User {
+class Userbd {
   constructor({ name, score = 0 }) {
     this.name = name;
     this.score = score;
   }
 }
 
-module.exports = User;
+module.exports = Userbd;
