@@ -7,8 +7,8 @@ const Enemy = require('./game-models/Enemy');
 // const Boomerang = require('./game-models/Boomerang');
 const View = require('./View');
 const Boomerang = require('./game-models/Boomerang');
-const User = require('./User');
-
+const Userbd = require('./Userbd');
+const { User } = require('../db/models');
 // Основной класс игры.
 // Тут будут все настройки, проверки, запуск.
 
@@ -20,7 +20,7 @@ class Game {
     this.enemy = new Enemy(trackLength);
     this.view = new View(this);
     this.track = [];
-    this.user = new User({ name: process.argv[2] });
+    this.user = new Userbd({ name: process.argv[2] });
     this.regenerateTrack();
   }
 
@@ -30,7 +30,10 @@ class Game {
     this.track = new Array(this.trackLength).fill(' ');
     this.track[this.hero.position] = this.hero.skin;
     this.track[this.enemy.position] = this.enemy.skin; // Добавьте эту строку
-    if (this.hero.boomerang.position >= 0 && this.hero.boomerang.position < this.trackLength) {
+    if (
+      this.hero.boomerang.position >= 0 &&
+      this.hero.boomerang.position < this.trackLength
+    ) {
       this.track[this.hero.boomerang.position] = this.hero.boomerang.skin;
     }
   }
@@ -42,9 +45,30 @@ class Game {
     }
   }
 
+  async insertUser() {
+    try {
+      await User.create({ name: this.user.name });
+    } catch ({ message }) {
+      console.log(message);
+    }
+  }
+
+  async updateScore() {
+    try {
+      const player = await User.findOne({ where: { name: this.user.name } });
+      player.score = this.user.score;
+      await player.save();
+    } catch ({ message }) {
+      console.log(message);
+    }
+  }
+
   play() {
+    this.insertUser();
+
     setInterval(() => {
       // Let's play!
+
       this.handleCollisions();
       this.regenerateTrack();
 
@@ -68,6 +92,8 @@ class Game {
     if (this.boomerang.position === this.enemy.position) {
       this.enemy.die();
       this.user.score += 1;
+      this.updateScore();
+
       // Обнуляем позицию бумеранга после столкновения с врагом
       // this.boomerang.position = -1;
       this.enemy = new Enemy(this.trackLength); // Создаем нового врага
